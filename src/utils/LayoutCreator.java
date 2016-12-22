@@ -6,6 +6,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
 import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl;
+import com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl;
 import com.intellij.psi.search.EverythingGlobalScope;
 import entity.Element;
 import org.apache.http.util.TextUtils;
@@ -65,11 +66,14 @@ public class LayoutCreator extends WriteCommandAction.Simple {
 
         // generator of view holder class
         StringBuilder generator = new StringBuilder();
+
         generator.append("public " + holderClassName + "(android.view.View rootView) {\n");
 
         // rootView
         String rootViewName = "rootView";
         holderBuilder.append("public " + "android.view.View " + rootViewName + ";\n");
+        //call parent method added by zhangyige at 2016-12-22
+        generator.append("super(rootView);\n");
         generator.append("this." + rootViewName + " = " + rootViewName + ";\n");
 
         for (Element element : mElements) {
@@ -93,6 +97,10 @@ public class LayoutCreator extends WriteCommandAction.Simple {
         mClass.add(viewHolder);
         mClass.addBefore(mFactory.createKeyword("public", mClass), mClass.findInnerClassByName(holderClassName, true));
         mClass.addBefore(mFactory.createKeyword("static", mClass), mClass.findInnerClassByName(holderClassName, true));
+        //如何添加父类呢
+        //extends RecyclerView.ViewHolder modified by zhangyige at 2016-12-22
+//        mClass.addAfter(mFactory., mClass.findInnerClassByName(holderClassName, true));
+
     }
 
     /**
@@ -167,7 +175,7 @@ public class LayoutCreator extends WriteCommandAction.Simple {
                     }
                 }
 
-                if(!hasInitViewStatement && setContentViewStatement != null) {
+                if (!hasInitViewStatement && setContentViewStatement != null) {
                     // Insert initView() after setContentView()
                     onCreate.getBody().addAfter(mFactory.createStatementFromText("initView();", mClass), setContentViewStatement);
                 }
@@ -193,7 +201,7 @@ public class LayoutCreator extends WriteCommandAction.Simple {
                     if (statement instanceof PsiReturnStatement) {
                         returnStatement = (PsiReturnStatement) statement;
                         returnValue = returnStatement.getReturnValue().getText();
-                    } else if(statement.getFirstChild() instanceof PsiMethodCallExpression) {
+                    } else if (statement.getFirstChild() instanceof PsiMethodCallExpression) {
                         PsiReferenceExpression methodExpression = ((PsiMethodCallExpression) statement.getFirstChild()).getMethodExpression();
                         if (methodExpression.getText().equals("initView")) {
                             hasInitViewStatement = true;
@@ -201,7 +209,7 @@ public class LayoutCreator extends WriteCommandAction.Simple {
                     }
                 }
 
-                if(!hasInitViewStatement && returnStatement != null && returnValue != null) {
+                if (!hasInitViewStatement && returnStatement != null && returnValue != null) {
                     // Insert initView() before return statement
                     onCreateView.getBody().addBefore(mFactory.createStatementFromText("initView(" + returnValue + ");", mClass), returnStatement);
                 }
@@ -251,7 +259,7 @@ public class LayoutCreator extends WriteCommandAction.Simple {
                 String idName = element.id;
                 int index = idName.lastIndexOf("_");
                 String name = index == -1 ? idName : idName.substring(index + 1);
-                if(name.equals(idName)) {
+                if (name.equals(idName)) {
                     name += "String";
                 }
 
@@ -348,11 +356,11 @@ public class LayoutCreator extends WriteCommandAction.Simple {
                 // append non-repeated field
                 PsiCodeBlock onClickMethodBody = onClickMethods[0].getBody();
 
-                for(PsiElement element : onClickMethodBody.getChildren()) {
-                    if(element instanceof PsiSwitchStatement) {
+                for (PsiElement element : onClickMethodBody.getChildren()) {
+                    if (element instanceof PsiSwitchStatement) {
                         PsiSwitchStatement switchStatement = (PsiSwitchStatement) element;
                         PsiCodeBlock body = switchStatement.getBody();
-                        if(body != null) {
+                        if (body != null) {
                             for (Element clickableElement : clickableElements) {
                                 String caseStr = "case " + clickableElement.getFullID() + " :";
                                 body.add(mFactory.createStatementFromText(caseStr, body));
