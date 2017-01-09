@@ -1,19 +1,13 @@
 package utils;
 
-import action.LayoutCreatorAction;
 import com.intellij.codeInsight.actions.ReformatCodeProcessor;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
-import com.intellij.psi.impl.source.PsiClassReferenceType;
-import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl;
-import com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl;
 import com.intellij.psi.search.EverythingGlobalScope;
-import com.intellij.psi.search.GlobalSearchScope;
 import entity.Element;
 import org.apache.http.util.TextUtils;
-import org.codehaus.groovy.ast.ClassHelper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
