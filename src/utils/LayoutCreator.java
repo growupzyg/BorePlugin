@@ -1,15 +1,19 @@
 package utils;
 
+import action.LayoutCreatorAction;
 import com.intellij.codeInsight.actions.ReformatCodeProcessor;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.project.Project;
 import com.intellij.psi.*;
 import com.intellij.psi.codeStyle.JavaCodeStyleManager;
+import com.intellij.psi.impl.source.PsiClassReferenceType;
 import com.intellij.psi.impl.source.tree.PsiWhiteSpaceImpl;
 import com.intellij.psi.impl.source.tree.java.PsiMethodReferenceExpressionImpl;
 import com.intellij.psi.search.EverythingGlobalScope;
+import com.intellij.psi.search.GlobalSearchScope;
 import entity.Element;
 import org.apache.http.util.TextUtils;
+import org.codehaus.groovy.ast.ClassHelper;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -26,6 +30,7 @@ public class LayoutCreator extends WriteCommandAction.Simple {
     protected String mLayoutFileName;
     protected String mFieldNamePrefix;
     protected boolean mCreateHolder;
+    public static final String ANDROID_RECYCLER_VIEW_VIEWHOLDER_CLASS = "android.support.v7.widget.RecyclerView.ViewHolder";
 
     public LayoutCreator(PsiFile file, PsiClass clazz, String command, ArrayList<Element> elements, String layoutFileName, String fieldNamePrefix, boolean createHolder) {
         super(clazz.getProject(), command);
@@ -60,6 +65,15 @@ public class LayoutCreator extends WriteCommandAction.Simple {
      * Create ViewHolder for adapters with injections
      */
     protected void generateAdapter() {
+        //remove old viewHolder method added by ZhangYiGe at 2017年1月9日17:41:13
+        PsiClass[] psiClasses = mClass.getInnerClasses();
+        for (PsiClass psiClass : psiClasses) {
+            if(psiClass.getName().contains("ViewHolder")){
+                psiClass.delete();
+            }
+        }
+        //end
+
         // view holder class
         String holderClassName = Utils.getViewHolderClassName();
         StringBuilder holderBuilder = new StringBuilder();
@@ -94,13 +108,22 @@ public class LayoutCreator extends WriteCommandAction.Simple {
 
         PsiClass viewHolder = mFactory.createClassFromText(holderBuilder.toString(), mClass);
         viewHolder.setName(holderClassName);
+        //添加父类 added by ZhangYiGe at 2017年1月9日17:40:53
+        PsiClass rvHolderClass = findClass(mProject, ANDROID_RECYCLER_VIEW_VIEWHOLDER_CLASS);
+        viewHolder.getExtendsList().add(mFactory.createClassReferenceElement(rvHolderClass));
+        //end
         mClass.add(viewHolder);
         mClass.addBefore(mFactory.createKeyword("public", mClass), mClass.findInnerClassByName(holderClassName, true));
         mClass.addBefore(mFactory.createKeyword("static", mClass), mClass.findInnerClassByName(holderClassName, true));
-        //如何添加父类呢
-        //extends RecyclerView.ViewHolder modified by zhangyige at 2016-12-22
-//        mClass.addAfter(mFactory., mClass.findInnerClassByName(holderClassName, true));
 
+    }
+    public PsiClass findClass(Project project, String className) {
+        JavaPsiFacade psiFacade = JavaPsiFacade.getInstance(project);
+        PsiClass viewClass = psiFacade.findClass(className, new EverythingGlobalScope(project));
+        if (viewClass == null) {
+            Utils.showErrorNotification(project, "Class not found: " + className);
+        }
+        return viewClass;
     }
 
     /**
